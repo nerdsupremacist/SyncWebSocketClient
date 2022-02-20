@@ -3,7 +3,6 @@ import Foundation
 import Sync
 import Combine
 
-@available(macOS 12, iOS 15, watchOS 8, tvOS 15, *)
 public class WebSocketClientConnection: ConsumerConnection {
     public private(set) var isConnected: Bool = false
 
@@ -12,8 +11,8 @@ public class WebSocketClientConnection: ConsumerConnection {
     public let codingContext: EventCodingContext
 
     private var task: URLSessionWebSocketTask? = nil
-    private var asyncTask: Task<Void, Never>?
     private let receivedDataSubject = PassthroughSubject<Data, Never>()
+    private var listenTask: Task<Void, Error>? = nil
 
     init(taskCreator: WebSocketTaskCreator,
          session: URLSession,
@@ -24,14 +23,13 @@ public class WebSocketClientConnection: ConsumerConnection {
         self.codingContext = codingContext
     }
 
-    private func listen() {
-        task?.receive { [weak self] result in
-            switch result {
-            case .failure(let error):
-                print(error)
-            case .success(let message):
-                self?.receivedDataSubject.send(message.data)
+    private func listen(task: URLSessionWebSocketTask) {
+        let sequence = WebSocketStream(task: task)
+        listenTask = Task { [unowned self] in
+            for try await data in sequence {
+                self.receivedDataSubject.send(data)
             }
+            isConnected = false
         }
     }
 
@@ -43,18 +41,20 @@ public class WebSocketClientConnection: ConsumerConnection {
         task.resume()
         isConnected = true
         let message = try await messageTask.value
-        listen()
+        listen(task: task)
         self.task = task
         return message.data
     }
 
     public func disconnect() {
         task?.cancel()
+        listenTask?.cancel()
+        isConnected = false
     }
 
     public func send(data: Data) {
-        task?.send(.data(data)) { error in
-            print(error.debugDescription)
+        task?.send(.data(data)) { _ in
+            // ignore error for now
         }
     }
 
@@ -63,7 +63,6 @@ public class WebSocketClientConnection: ConsumerConnection {
     }
 }
 
-@available(macOS 12, iOS 15, watchOS 8, tvOS 15, *)
 extension WebSocketClientConnection {
 
     public convenience init(url: URL,
@@ -95,6 +94,37 @@ extension WebSocketClientConnection {
         self.init(taskCreator: WebSocketRequestTaskCreator(request: request), session: session, codingContext: codingContext)
     }
 
+}
+
+private class WebSocketStream: AsyncSequence {
+    typealias Element = Data
+    typealias AsyncIterator = WebSocketAsyncIterator
+
+    private let task: URLSessionWebSocketTask
+
+    init(task: URLSessionWebSocketTask) {
+        self.task = task
+    }
+
+    func makeAsyncIterator() -> AsyncIterator {
+        return WebSocketAsyncIterator(task: task)
+    }
+}
+
+private class WebSocketAsyncIterator: AsyncIteratorProtocol {
+    typealias Element = Data
+
+    private let task: URLSessionWebSocketTask
+
+    init(task: URLSessionWebSocketTask) {
+        self.task = task
+    }
+
+    func next() async throws -> Data? {
+        guard case .invalid = task.closeCode else { return nil }
+        let message = try await task.receive()
+        return message.data
+    }
 }
 
 extension URLSessionWebSocketTask.Message {
