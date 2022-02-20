@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Sync",
+        "repositoryURL": "https://github.com/nerdsupremacist/Sync.git",
+        "state": {
+          "branch": "main",
+          "revision": "f32064eafb9f0475ce8921e0c9b64898b75fa44c",
+          "version": null
+        }
+      }
+    ]
+  },
+  "version": 1
+}
