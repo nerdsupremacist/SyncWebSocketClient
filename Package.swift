@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "SyncWebSocketClient",
-    platforms: [.macOS(.v11), .iOS(.v14), .watchOS(.v6), .tvOS(.v14)],
+    platforms: [.macOS(.v12), .iOS(.v15), .watchOS(.v8), .tvOS(.v15)],
     products: [
         .library(
             name: "SyncWebSocketClient",
@@ -15,8 +15,6 @@ let package = Package(
         .package(name: "Sync", url: "https://github.com/nerdsupremacist/Sync.git", branch: "main"),
     ],
     targets: [
-        // Targets are the basic building blocks of a package. A target can define a module or a test suite.
-        // Targets can depend on other targets in this package, and on products in packages this package depends on.
         .target(
             name: "SyncWebSocketClient",
             dependencies: ["Sync"]),
