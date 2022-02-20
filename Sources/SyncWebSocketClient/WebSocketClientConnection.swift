@@ -3,10 +3,11 @@ import Foundation
 import Sync
 import Combine
 
-@available(macOS 12.0, *)
+@available(macOS 12, iOS 15, watchOS 8, tvOS 15, *)
 public class WebSocketClientConnection: ConsumerConnection {
     public private(set) var isConnected: Bool = false
 
+    private let taskCreator: WebSocketTaskCreator
     private let session: URLSession
     public let codingContext: EventCodingContext
 
@@ -14,9 +15,11 @@ public class WebSocketClientConnection: ConsumerConnection {
     private var asyncTask: Task<Void, Never>?
     private let receivedDataSubject = PassthroughSubject<Data, Never>()
 
-    init(session: URLSession = .shared,
-         codingContext: EventCodingContext = JSONEventCodingContext()) {
+    init(taskCreator: WebSocketTaskCreator,
+         session: URLSession,
+         codingContext: EventCodingContext) {
 
+        self.taskCreator = taskCreator
         self.session = session
         self.codingContext = codingContext
     }
@@ -33,11 +36,12 @@ public class WebSocketClientConnection: ConsumerConnection {
     }
 
     public func connect() async throws -> Data {
-        let task = session.webSocketTask(with: URL(string: "")!)
+        let task = taskCreator.task(session: session)
         let messageTask = Task {
             try await task.receive()
         }
         task.resume()
+        isConnected = true
         let message = try await messageTask.value
         listen()
         self.task = task
@@ -59,6 +63,40 @@ public class WebSocketClientConnection: ConsumerConnection {
     }
 }
 
+@available(macOS 12, iOS 15, watchOS 8, tvOS 15, *)
+extension WebSocketClientConnection {
+
+    public convenience init(url: URL,
+                session: URLSession = .shared,
+                codingContext: EventCodingContext = JSONEventCodingContext()) {
+
+        self.init(taskCreator: URLWebSocketTaskCreator(url: url), session: session, codingContext: codingContext)
+    }
+
+    public convenience init(url: URL,
+                protocols: [String],
+                session: URLSession = .shared,
+                codingContext: EventCodingContext = JSONEventCodingContext()) {
+
+        self.init(taskCreator: URLAndProtocolWebSocketTaskCreator(url: url, protocols: protocols), session: session, codingContext: codingContext)
+    }
+
+    public convenience init(request: URLRequest,
+                            session: URLSession = .shared,
+                            codingContext: EventCodingContext = JSONEventCodingContext()) {
+
+        self.init(taskCreator: URLRequestTaskCreator(request: request), session: session, codingContext: codingContext)
+    }
+
+    public convenience init(request: WebSocketRequest,
+                            session: URLSession = .shared,
+                            codingContext: EventCodingContext = JSONEventCodingContext()) {
+
+        self.init(taskCreator: WebSocketRequestTaskCreator(request: request), session: session, codingContext: codingContext)
+    }
+
+}
+
 extension URLSessionWebSocketTask.Message {
 
     fileprivate var data: Data {
@@ -72,4 +110,45 @@ extension URLSessionWebSocketTask.Message {
         }
     }
 
+}
+
+protocol WebSocketTaskCreator {
+    func task(session: URLSession) -> URLSessionWebSocketTask
+}
+
+private struct URLWebSocketTaskCreator: WebSocketTaskCreator {
+    let url: URL
+
+    func task(session: URLSession) -> URLSessionWebSocketTask {
+        return session.webSocketTask(with: url)
+    }
+}
+
+private struct URLAndProtocolWebSocketTaskCreator: WebSocketTaskCreator {
+    let url: URL
+    let protocols: [String]
+
+    func task(session: URLSession) -> URLSessionWebSocketTask {
+        return session.webSocketTask(with: url, protocols: protocols)
+    }
+}
+
+private struct URLRequestTaskCreator: WebSocketTaskCreator {
+    let request: URLRequest
+
+    func task(session: URLSession) -> URLSessionWebSocketTask {
+        return session.webSocketTask(with: request)
+    }
+}
+
+public protocol WebSocketRequest {
+    func request() -> URLRequest
+}
+
+private struct WebSocketRequestTaskCreator: WebSocketTaskCreator {
+    let request: WebSocketRequest
+
+    func task(session: URLSession) -> URLSessionWebSocketTask {
+        return session.webSocketTask(with: request.request())
+    }
 }
