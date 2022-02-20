@@ -12,7 +12,7 @@ let package = Package(
             targets: ["SyncWebSocketClient"]),
     ],
     dependencies: [
-        .package(name: "Sync", url: "https://github.com/nerdsupremacist/Sync.git", branch: "main"),
+        .package(name: "Sync", url: "https://github.com/nerdsupremacist/Sync.git", from: "0.1.0"),
     ],
     targets: [
         .target(
