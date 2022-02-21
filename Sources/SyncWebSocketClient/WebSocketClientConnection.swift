@@ -82,18 +82,30 @@ extension WebSocketClientConnection {
         }
 
         func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
-            connection.disconnect()
+            guard let error = error as? URLError else { return }
+            switch error.code {
+            case .cancelled:
+                break
+            default:
+                connection.disconnect()
+            }
         }
 
         func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-            connection.disconnect()
+            guard let error = error as? URLError else { return }
+            switch error.code {
+            case .cancelled:
+                break
+            default:
+                connection.disconnect()
+            }
         }
 
         func urlSession(_ session: URLSession,
                         webSocketTask: URLSessionWebSocketTask,
                         didCloseWith closeCode: URLSessionWebSocketTask.CloseCode,
                         reason: Data?) {
-            
+
             connection.disconnect()
         }
     }
