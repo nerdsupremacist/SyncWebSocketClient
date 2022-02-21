@@ -5,7 +5,7 @@ import Combine
 
 public class WebSocketClientConnection: ConsumerConnection {
     @Published
-    public private(set) var isConnected: Bool = false
+    public fileprivate(set) var isConnected: Bool = false
 
     public var isConnectedPublisher: AnyPublisher<Bool, Never> {
         return $isConnected.eraseToAnyPublisher()
@@ -18,6 +18,7 @@ public class WebSocketClientConnection: ConsumerConnection {
     private var task: URLSessionWebSocketTask? = nil
     private let receivedDataSubject = PassthroughSubject<Data, Never>()
     private var listenTask: Task<Void, Error>? = nil
+    private var delegate: Delegate? = nil
 
     init(taskCreator: WebSocketTaskCreator,
          session: URLSession,
@@ -39,7 +40,9 @@ public class WebSocketClientConnection: ConsumerConnection {
     }
 
     public func connect() async throws -> Data {
+        let delegate = Delegate(connection: self)
         let task = taskCreator.task(session: session)
+        task.delegate = delegate
         let messageTask = Task {
             try await task.receive()
         }
@@ -52,6 +55,7 @@ public class WebSocketClientConnection: ConsumerConnection {
     }
 
     public func disconnect() {
+        delegate = nil
         task?.cancel()
         listenTask?.cancel()
         isConnected = false
@@ -65,6 +69,25 @@ public class WebSocketClientConnection: ConsumerConnection {
 
     public func receive() -> AnyPublisher<Data, Never> {
         return receivedDataSubject.eraseToAnyPublisher()
+    }
+}
+
+extension WebSocketClientConnection {
+    private class Delegate: NSObject, URLSessionWebSocketDelegate {
+        private unowned let connection: WebSocketClientConnection
+
+        init(connection: WebSocketClientConnection) {
+            self.connection = connection
+            super.init()
+        }
+
+        func urlSession(_ session: URLSession,
+                        webSocketTask: URLSessionWebSocketTask,
+                        didCloseWith closeCode: URLSessionWebSocketTask.CloseCode,
+                        reason: Data?) {
+
+            connection.isConnected = false
+        }
     }
 }
 
