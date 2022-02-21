@@ -81,6 +81,14 @@ extension WebSocketClientConnection {
             super.init()
         }
 
+        func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
+            connection.isConnected = false
+        }
+
+        func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+            connection.isConnected = false
+        }
+
         func urlSession(_ session: URLSession,
                         webSocketTask: URLSessionWebSocketTask,
                         didCloseWith closeCode: URLSessionWebSocketTask.CloseCode,
