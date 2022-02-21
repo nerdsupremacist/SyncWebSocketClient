@@ -86,23 +86,13 @@ extension WebSocketClientConnection {
         }
 
         func urlSession(_ session: URLSession, didBecomeInvalidWithError error: Error?) {
-            guard let error = error as? URLError else { return }
-            switch error.code {
-            case .cancelled:
-                break
-            default:
-                connection.disconnect()
-            }
+            guard let error = error, shouldDisconnect(dueTo: error) else { return }
+            connection.disconnect()
         }
 
         func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-            guard let error = error as? URLError else { return }
-            switch error.code {
-            case .cancelled:
-                break
-            default:
-                connection.disconnect()
-            }
+            guard let error = error, shouldDisconnect(dueTo: error) else { return }
+            connection.disconnect()
         }
 
         func urlSession(_ session: URLSession,
@@ -111,6 +101,15 @@ extension WebSocketClientConnection {
                         reason: Data?) {
 
             connection.disconnect()
+        }
+
+        private func shouldDisconnect(dueTo error: Error) -> Bool {
+            if let error = error as? URLError {
+                return error.code != .cancelled
+            }
+
+            let error = error as NSError
+            return error.code != NSURLErrorCancelled
         }
     }
 }
