@@ -59,6 +59,7 @@ public class WebSocketClientConnection: ConsumerConnection {
     }
 
     public func disconnect() {
+        guard isConnected else { return }
         delegate = nil
         task?.cancel()
         listenTask?.cancel()
