@@ -29,6 +29,10 @@ public class WebSocketClientConnection: ConsumerConnection {
         self.codingContext = codingContext
     }
 
+    deinit {
+        self.listenTask?.cancel()
+    }
+
     private func listen(task: URLSessionWebSocketTask) {
         let sequence = WebSocketStream(task: task)
         listenTask = Task { [unowned self] in
