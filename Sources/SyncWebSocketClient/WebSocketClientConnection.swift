@@ -3,6 +3,31 @@ import Foundation
 import Sync
 import Combine
 
+extension ConsumerConnection where Self == WebSocketClientConnection {
+
+    public static func webSocket(url: URL,
+                                 session: URLSession = .shared,
+                                 codingContext: EventCodingContext = .json) -> ConsumerConnection {
+
+        return WebSocketClientConnection(url: url, session: session, codingContext: codingContext)
+    }
+
+    public static func webSocket(request: URLRequest,
+                                 session: URLSession = .shared,
+                                 codingContext: EventCodingContext = .json) -> ConsumerConnection {
+
+        return WebSocketClientConnection(request: request, session: session, codingContext: codingContext)
+    }
+
+    public static func webSocket(request: WebSocketRequest,
+                                 session: URLSession = .shared,
+                                 codingContext: EventCodingContext = .json) -> ConsumerConnection {
+
+        return WebSocketClientConnection(request: request, session: session, codingContext: codingContext)
+    }
+
+}
+
 public class WebSocketClientConnection: ConsumerConnection {
     @Published
     public fileprivate(set) var isConnected: Bool = false
