@@ -51,8 +51,8 @@ public class WebSocketClientConnection: ConsumerConnection {
             try await task.receive()
         }
         task.resume()
-        isConnected = true
         let message = try await messageTask.value
+        isConnected = true
         listen(task: task)
         self.task = task
         return message.data
