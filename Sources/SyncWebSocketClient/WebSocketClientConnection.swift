@@ -4,7 +4,12 @@ import Sync
 import Combine
 
 public class WebSocketClientConnection: ConsumerConnection {
+    @Published
     public private(set) var isConnected: Bool = false
+
+    public var isConnectedPublisher: AnyPublisher<Bool, Never> {
+        return $isConnected.eraseToAnyPublisher()
+    }
 
     private let taskCreator: WebSocketTaskCreator
     private let session: URLSession
