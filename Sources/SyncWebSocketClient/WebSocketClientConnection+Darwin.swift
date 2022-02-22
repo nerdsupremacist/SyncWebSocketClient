@@ -1,7 +1,8 @@
 
+#if !os(WASI)
 import Foundation
 import Sync
-import Combine
+import OpenCombineShim
 
 extension ConsumerConnection where Self == WebSocketClientConnection {
 
@@ -259,3 +260,4 @@ private struct WebSocketRequestTaskCreator: WebSocketTaskCreator {
         return session.webSocketTask(with: request.request())
     }
 }
+#endif
