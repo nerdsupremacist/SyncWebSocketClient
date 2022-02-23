@@ -13,18 +13,12 @@ let package = Package(
     ],
     dependencies: [
         .package(name: "Sync", url: "https://github.com/nerdsupremacist/Sync.git", from: "1.0.0"),
-        .package(url: "https://github.com/swiftwasm/JavaScriptKit.git", .upToNextMinor(from: "0.12.0")),
     ],
     targets: [
         .target(
             name: "SyncWebSocketClient",
             dependencies: [
                 "Sync",
-                .product(
-                    name: "JavaScriptKit",
-                    package: "JavaScriptKit",
-                    condition: .when(platforms: [.wasi])
-                ),
             ]),
         .testTarget(
             name: "SyncWebSocketClientTests",
